@@ -1,4 +1,14 @@
-import { useState } from "react";
+import { useState, type ChangeEventHandler, type KeyboardEventHandler } from "react";
+
+interface PasswordInputProps {
+  id: string;
+  label?: string;
+  value: string;
+  onChange: ChangeEventHandler<HTMLInputElement>;
+  onKeyDown?: KeyboardEventHandler<HTMLInputElement>;
+  placeholder?: string;
+  autoComplete?: string;
+}
 
 export default function PasswordInput({
   id,
@@ -8,7 +18,7 @@ export default function PasswordInput({
   onKeyDown,
   placeholder,
   autoComplete,
-}) {
+}: PasswordInputProps) {
   const [visible, setVisible] = useState(false);
 
   return (
