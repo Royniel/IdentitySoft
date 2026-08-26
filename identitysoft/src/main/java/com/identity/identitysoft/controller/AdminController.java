@@ -13,9 +13,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.identity.identitysoft.dto.UserSummaryResponse;
 import com.identity.identitysoft.entity.AuditLog;
-import com.identity.identitysoft.entity.Role;
 import com.identity.identitysoft.entity.User;
 import com.identity.identitysoft.repository.UserRepository;
+import com.identity.identitysoft.service.AdminService;
 import com.identity.identitysoft.service.AuditService;
 
 @RestController
@@ -25,10 +25,12 @@ public class AdminController {
 
     private final UserRepository userRepository;
     private final AuditService auditService;
+    private final AdminService adminService;
 
-    public AdminController(UserRepository userRepository, AuditService auditService) {
+    public AdminController(UserRepository userRepository, AuditService auditService, AdminService adminService) {
         this.userRepository = userRepository;
         this.auditService = auditService;
+        this.adminService = adminService;
     }
 
     @GetMapping("/users")
@@ -56,39 +58,17 @@ public class AdminController {
 
     @PutMapping("/users/{id}/make-admin")
     public UserSummaryResponse makeAdmin(@PathVariable Long id) {
-        User user = getUserOrThrow(id);
-        user.getRoles().add(Role.ROLE_ADMIN);
-        auditService.log(user.getUsername(), "MAKE_ADMIN");
-        return UserSummaryResponse.from(userRepository.save(user));
+        return adminService.makeAdmin(id);
     }
 
     @DeleteMapping("/users/{id}")
     public void deleteUser(@PathVariable Long id) {
-        User user = getUserOrThrow(id);
-
-        if (user.getRoles().contains(Role.ROLE_ADMIN) && countOtherAdmins(id) == 0) {
-            throw new IllegalArgumentException(
-                    "Cannot delete the only remaining admin. Promote another user first.");
-        }
-
-        userRepository.deleteById(id);
-        auditService.log(user.getUsername(), "USER_DELETED");
+        adminService.deleteUser(id);
     }
 
-    // Lets an admin voluntarily give up their own admin role, but only if someone else can still manage the system.
     @PutMapping("/self/remove-admin")
     public UserSummaryResponse removeSelfAdmin(Authentication authentication) {
-        User self = userRepository.findByUsername(authentication.getName())
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
-
-        if (countOtherAdmins(self.getId()) == 0) {
-            throw new IllegalArgumentException(
-                    "You are the only admin. Promote another user before removing yourself.");
-        }
-
-        self.getRoles().remove(Role.ROLE_ADMIN);
-        auditService.log(self.getUsername(), "SELF_REMOVE_ADMIN");
-        return UserSummaryResponse.from(userRepository.save(self));
+        return adminService.removeSelfAdmin(authentication.getName());
     }
 
     @GetMapping("/audit/{username}")
@@ -99,11 +79,5 @@ public class AdminController {
     private User getUserOrThrow(Long id) {
         return userRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
-    }
-
-    private long countOtherAdmins(Long excludingId) {
-        return userRepository.findAll().stream()
-                .filter(u -> !u.getId().equals(excludingId) && u.getRoles().contains(Role.ROLE_ADMIN))
-                .count();
     }
 }

@@ -4,6 +4,7 @@ import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import com.identity.identitysoft.entity.Role;
 import com.identity.identitysoft.entity.User;
 
 public interface UserRepository extends JpaRepository<User, Long> {
@@ -15,4 +16,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByUsername(String username);
 
     boolean existsByEmail(String email);
+
+    long countByRolesContainingAndIdNot(Role role, Long id);
 }
