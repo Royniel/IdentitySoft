@@ -1,3 +1,5 @@
 .DS_Store
 *.bak
 logs/
+.env
+!.env.example

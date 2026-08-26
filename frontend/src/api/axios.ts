@@ -8,9 +8,11 @@ interface RefreshResponse {
   accessToken: string;
 }
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api";
+
 // Central HTTP client — every API call goes through this
 const api = axios.create({
-  baseURL: "http://localhost:8080/api",
+  baseURL: API_BASE_URL,
 });
 
 // Attach the access token to every outgoing request, if we have one
@@ -34,7 +36,7 @@ api.interceptors.response.use(
 
       if (refreshToken) {
         try {
-          const res = await axios.post<RefreshResponse>("http://localhost:8080/api/auth/refresh", {
+          const res = await axios.post<RefreshResponse>(`${API_BASE_URL}/auth/refresh`, {
             refreshToken,
           });
           localStorage.setItem("accessToken", res.data.accessToken);
