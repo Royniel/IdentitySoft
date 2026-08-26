@@ -1,4 +1,5 @@
 import { useState } from "react";
+import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import PasswordInput from "../components/PasswordInput";
@@ -32,8 +33,9 @@ export default function ForgotPassword() {
     try {
       await api.post("/auth/forgot-password", { identifier, newPassword, confirmPassword });
       setSuccess(true);
-    } catch (err) {
-      setError(err.response?.data?.error || "Could not reset your password. Try again.");
+    } catch (err: unknown) {
+      const message = axios.isAxiosError<{ error?: string }>(err) ? err.response?.data?.error : undefined;
+      setError(message || "Could not reset your password. Try again.");
     } finally {
       setLoading(false);
     }

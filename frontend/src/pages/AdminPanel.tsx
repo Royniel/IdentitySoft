@@ -1,18 +1,20 @@
 import { useState, useEffect } from "react";
+import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
+import type { AdminUser, AuditLogEntry } from "../types/admin";
 
 export default function AdminPanel() {
   const { user, logout, updateRoles } = useAuth();
   const navigate = useNavigate();
 
-  const [users, setUsers] = useState([]);
-  const [auditLogs, setAuditLogs] = useState([]);
-  const [selectedUser, setSelectedUser] = useState(null);
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
+  const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [confirmTarget, setConfirmTarget] = useState(null); // user pending delete confirmation
+  const [confirmTarget, setConfirmTarget] = useState<AdminUser | null>(null); // user pending delete confirmation
   const [confirmSelfDemote, setConfirmSelfDemote] = useState(false);
 
   const adminCount = users.filter((u) => u.roles?.includes("ROLE_ADMIN")).length;
@@ -20,7 +22,7 @@ export default function AdminPanel() {
 
   const loadUsers = async () => {
     try {
-      const res = await api.get("/admin/users");
+      const res = await api.get<AdminUser[]>("/admin/users");
       setUsers(res.data);
     } catch {
       setError("Could not load users. You may not have admin access.");
@@ -33,54 +35,57 @@ export default function AdminPanel() {
     loadUsers();
   }, []);
 
-  const toggleActive = async (u) => {
+  const toggleActive = async (u: AdminUser) => {
     const action = u.active ? "deactivate" : "activate";
     try {
-      await api.put(`/admin/users/${u.id}/${action}`);
+      await api.put<AdminUser>(`/admin/users/${u.id}/${action}`);
       loadUsers();
     } catch {
       setError(`Could not ${action} ${u.username}.`);
     }
   };
 
-  const makeAdmin = async (u) => {
+  const makeAdmin = async (u: AdminUser) => {
     setError("");
     try {
-      await api.put(`/admin/users/${u.id}/make-admin`);
+      await api.put<AdminUser>(`/admin/users/${u.id}/make-admin`);
       loadUsers();
-    } catch (err) {
-      setError(err.response?.data?.error || `Could not make ${u.username} an admin.`);
+    } catch (err: unknown) {
+      const message = axios.isAxiosError<{ error?: string }>(err) ? err.response?.data?.error : undefined;
+      setError(message || `Could not make ${u.username} an admin.`);
     }
   };
 
-  const deleteUser = async (u) => {
+  const deleteUser = async (u: AdminUser) => {
     setError("");
     try {
       await api.delete(`/admin/users/${u.id}`);
       setConfirmTarget(null);
       loadUsers();
-    } catch (err) {
-      setError(err.response?.data?.error || `Could not delete ${u.username}.`);
+    } catch (err: unknown) {
+      const message = axios.isAxiosError<{ error?: string }>(err) ? err.response?.data?.error : undefined;
+      setError(message || `Could not delete ${u.username}.`);
     }
   };
 
   const removeSelfAdmin = async () => {
     setError("");
     try {
-      const res = await api.put("/admin/self/remove-admin");
+      const res = await api.put<AdminUser>("/admin/self/remove-admin");
       updateRoles(res.data.roles);
       setConfirmSelfDemote(false);
       navigate("/dashboard");
-    } catch (err) {
-      setError(err.response?.data?.error || "Could not remove your admin access.");
+    } catch (err: unknown) {
+      const message = axios.isAxiosError<{ error?: string }>(err) ? err.response?.data?.error : undefined;
+      setError(message || "Could not remove your admin access.");
       setConfirmSelfDemote(false);
     }
   };
 
-  const viewAudit = async (username) => {
+  const viewAudit = async (username: string) => {
     setSelectedUser(username);
     try {
-      const res = await api.get(`/admin/audit/${username}`);
+      const res = await api.get<AuditLogEntry[]>(`/admin/audit/${username}`);
       setAuditLogs(res.data);
     } catch {
       setAuditLogs([]);
