@@ -18,6 +18,12 @@ import com.identity.identitysoft.repository.UserRepository;
 import com.identity.identitysoft.service.AdminService;
 import com.identity.identitysoft.service.AuditService;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
+@Tag(name = "Admin", description = "User management — requires a token for a user with ROLE_ADMIN")
+@SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("/api/admin")
 @PreAuthorize("hasAuthority('ROLE_ADMIN')")
@@ -33,6 +39,7 @@ public class AdminController {
         this.adminService = adminService;
     }
 
+    @Operation(summary = "List all users", description = "Returns every account with its roles and active status.")
     @GetMapping("/users")
     public List<UserSummaryResponse> getAllUsers() {
         return userRepository.findAll().stream()
@@ -40,6 +47,7 @@ public class AdminController {
                 .toList();
     }
 
+    @Operation(summary = "Deactivate a user", description = "The user can no longer log in until reactivated.")
     @PutMapping("/users/{id}/deactivate")
     public UserSummaryResponse deactivateUser(@PathVariable Long id) {
         User user = getUserOrThrow(id);
@@ -48,6 +56,7 @@ public class AdminController {
         return UserSummaryResponse.from(userRepository.save(user));
     }
 
+    @Operation(summary = "Reactivate a user")
     @PutMapping("/users/{id}/activate")
     public UserSummaryResponse activateUser(@PathVariable Long id) {
         User user = getUserOrThrow(id);
@@ -56,21 +65,25 @@ public class AdminController {
         return UserSummaryResponse.from(userRepository.save(user));
     }
 
+    @Operation(summary = "Promote a user to admin", description = "Grants ROLE_ADMIN in addition to their existing roles.")
     @PutMapping("/users/{id}/make-admin")
     public UserSummaryResponse makeAdmin(@PathVariable Long id) {
         return adminService.makeAdmin(id);
     }
 
+    @Operation(summary = "Delete a user", description = "Permanent. Blocked if the target is the only remaining admin.")
     @DeleteMapping("/users/{id}")
     public void deleteUser(@PathVariable Long id) {
         adminService.deleteUser(id);
     }
 
+    @Operation(summary = "Give up your own admin access", description = "Blocked if you are the only remaining admin.")
     @PutMapping("/self/remove-admin")
     public UserSummaryResponse removeSelfAdmin(Authentication authentication) {
         return adminService.removeSelfAdmin(authentication.getName());
     }
 
+    @Operation(summary = "View a user's audit trail", description = "Login attempts, role changes, and other tracked actions for one username.")
     @GetMapping("/audit/{username}")
     public List<AuditLog> getAuditLogs(@PathVariable String username) {
         return auditService.getLogsForUser(username);
