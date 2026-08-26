@@ -1,5 +1,7 @@
 # IdentitySoft
 
+[![CI](https://github.com/Royniel/IdentitySoft/actions/workflows/ci.yml/badge.svg)](https://github.com/Royniel/IdentitySoft/actions/workflows/ci.yml)
+
 A full-stack identity management demo: user registration/login with JWT auth, password reset,
 and an admin panel for managing users and roles.
 
